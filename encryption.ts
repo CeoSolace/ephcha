@@ -1,4 +1,4 @@
-// encryption.ts (Complete, no changes)
+// encryption.ts
 import * as libsignal from 'libsignal-protocol-javascript';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -24,7 +24,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 function padPlaintext(message: Uint8Array): Uint8Array {
   const size = message.length;
-  const paddedSize = size + 2 + ((160 - (size + 2) % 160) % 160); // Approximate Signal padding
+  const paddedSize = size + 2 + ((160 - (size + 2) % 160) % 160);
   const padded = new Uint8Array(paddedSize);
   padded[0] = (size >> 8) & 0xff;
   padded[1] = size & 0xff;
@@ -82,8 +82,6 @@ export class GroupSessionBuilder {
 
 // GroupCipher
 export class GroupCipher {
-  static LOCK = {};  // Placeholder
-
   private senderKeyStore: any;
   private senderKeyName: any;
 
@@ -99,7 +97,7 @@ export class GroupCipher {
     }
     const senderKeyState = record.getSenderKeyState();
     const senderKey = senderKeyState.getSenderChainKey().getSenderMessageKey();
-    const ciphertext = this.getCipherText(senderKey.getIv(), senderKey.getCipherKey(), paddedPlaintext);
+    const ciphertext = libsignal.crypto.encrypt(senderKey.getCipherKey(), paddedPlaintext, senderKey.getIv());
 
     const senderKeyMessage = new libsignal.SenderKeyMessage(
       senderKeyState.getKeyId(),
@@ -127,7 +125,7 @@ export class GroupCipher {
 
     const senderKey = this.getSenderKey(senderKeyState, senderKeyMessage.getIteration());
 
-    const plaintext = this.getPlainText(senderKey.getIv(), senderKey.getCipherKey(), senderKeyMessage.getCipherText());
+    const plaintext = libsignal.crypto.decrypt(senderKey.getCipherKey(), senderKeyMessage.getCipherText(), senderKey.getIv());
 
     this.senderKeyStore.storeSenderKey(this.senderKeyName, record);
 
@@ -157,32 +155,21 @@ export class GroupCipher {
     senderKeyState.setSenderChainKey(senderChainKey.getNext());
     return senderChainKey.getSenderMessageKey();
   }
-
-  private getPlainText(iv: Uint8Array, key: Uint8Array, ciphertext: Uint8Array): Uint8Array {
-    return libsignal.crypto.decrypt(key, ciphertext, iv);
-  }
-
-  private getCipherText(iv: Uint8Array, key: Uint8Array, plaintext: Uint8Array): Uint8Array {
-    return libsignal.crypto.encrypt(key, plaintext, iv);
-  }
 }
 
-// LocalStorageStore
+// LocalStorageStore (implements SignalProtocolStore interfaces)
 export class LocalStorageStore {
-  private Direction = {
-    SENDING: 1,
-    RECEIVING: 2,
-  };
-
   constructor() {}
 
   // IdentityKeyStore
   async getIdentityKeyPair() {
-    return JSON.parse(localStorage.getItem('identityKey') || 'null');
+    const pair = localStorage.getItem('identityKey');
+    return pair ? JSON.parse(pair) : null;
   }
 
   async getLocalRegistrationId() {
-    return parseInt(localStorage.getItem('registrationId') || '0');
+    const id = localStorage.getItem('registrationId');
+    return id ? parseInt(id) : 0;
   }
 
   async put(key: string, value: any) {
@@ -190,7 +177,7 @@ export class LocalStorageStore {
   }
 
   async isTrustedIdentity(identifier: string, identityKey: any, direction: number) {
-    return true; // Trust on first use
+    return true; // Trust on first use (simplified for demo)
   }
 
   async loadIdentityKey(identifier: string) {
