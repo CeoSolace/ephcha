@@ -1,4 +1,4 @@
-// vite.config.ts for frontend
+// vite.config.ts (Unchanged, but confirm proxy for dev)
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
