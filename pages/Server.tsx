@@ -1,4 +1,4 @@
-// pages/Server.tsx
+// pages/Server.tsx (Fully fixed with prod WS URL using API_BASE)
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -49,9 +49,9 @@ const Server: React.FC<Props> = ({ store, userId }) => {
     if (!serverId || !joinedServers[serverId] || !store) return;
 
     const { memberToken } = joinedServers[serverId];
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const url = `${protocol}//${host}/ws/${serverId}?member_token=${memberToken}`;
+    const wsProtocol = API_BASE.startsWith('https') ? 'wss' : 'ws';
+    const wsHost = API_BASE.replace(/^https?:\/\//, '');
+    const url = `${wsProtocol}://${wsHost}/ws/${serverId}?member_token=${memberToken}`;
 
     const websocket = new WebSocket(url);
 
